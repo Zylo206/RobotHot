@@ -22,8 +22,8 @@ const DAY = 86_400_000;
 const item = (title: string, link: string, daysAgo: number) =>
   `<item><title>${title}</title><link>${link}</link><guid>${link}</guid><pubDate>${new Date(Date.now() - daysAgo * DAY).toUTCString()}</pubDate><description>${title} summary</description></item>`;
 const feeds: Record<string, string> = {
-  // developers.openai.com lists one video twice, under two titles.
-  "/dup.xml": [item(`DevDay — optimization breakout ${T}`, `https://example.org/watch-${T}`, 0.1), item(`Balance accuracy, latency, and cost ${T}`, `https://example.org/watch-${T}`, 0.1)].join(""),
+  // a vendor's dev day page lists one video twice, under two titles.
+  "/dup.xml": [item(`G1 DevDay — locomotion breakout ${T}`, `https://example.org/watch-${T}`, 0.1), item(`Balance accuracy, latency, and cost ${T}`, `https://example.org/watch-${T}`, 0.1)].join(""),
   "/notes.xml": ["september-24", "september-23", "september-22"].map((d, i) => item(`Release notes — ${d} ${T}`, `https://example.org/notes-${T}/overview#${d}`, 0.1 + i)).join(""),
 };
 // A feed that loses a character here and there on every load, sent as two or three U+FFFD, in titles and
@@ -85,7 +85,7 @@ test("an article a feed lists twice is stored once and stays put across fetches"
   for (let run = 0; run < 3; run++) assert.equal((await collectSource(DUP_SOURCE, { force: true })).status, "ok");
   const rows = await articles(DUP_SOURCE);
   assert.equal(rows.length, 1);
-  assert.deepEqual([rows[0]!.title, rows[0]!.revision], [`DevDay — optimization breakout ${T}`, 1], "the first entry, never revised");
+  assert.deepEqual([rows[0]!.title, rows[0]!.revision], [`G1 DevDay — locomotion breakout ${T}`, 1], "the first entry, never revised");
 });
 
 test("sections of one page are separate articles when the source keeps fragments", async () => {

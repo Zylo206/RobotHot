@@ -7,7 +7,17 @@ import { failureGroupSql, queueProcessing, requeueFailed } from "../jobs/content
 
 const STALE_HEARTBEAT_MS = 3 * 60_000;
 
+/**
+ * The queue's tables are created by the worker on its first start (pg-boss migration). Before that
+ * — an API-only run, or a fresh database — the page still loads, with an empty backlog.
+ */
+async function queueSchemaReady(): Promise<boolean> {
+  const [row] = await sql<{ ok: boolean }[]>`SELECT to_regclass('pgboss.job') IS NOT NULL AS ok`;
+  return row?.ok === true;
+}
+
 export async function runsOverview() {
+  const queueReady = await queueSchemaReady();
   const [heartbeats, latest, timeline, queues, failedJobs, lagging, receipts, receiptIssues, deliveries, errors, ingest, leaderboard] = await Promise.all([
     sql<{ key: string; value: Record<string, unknown>; updated_at: Date }[]>`SELECT key, value, updated_at FROM settings WHERE key LIKE 'heartbeat.%' ORDER BY key`,
     sql`
@@ -21,12 +31,16 @@ export async function runsOverview() {
       SELECT latest.*, coalesce(counts.failed_24h, 0) AS failed_24h, coalesce(counts.runs_24h, 0) AS runs_24h
       FROM latest LEFT JOIN counts USING (job) ORDER BY job`,
     sql`SELECT id, job, started_at, finished_at, status, left(error, 300) AS error FROM job_runs ORDER BY started_at DESC LIMIT 80`,
-    sql<{ name: string; state: string; n: number; oldest: Date }[]>`
-      SELECT name, state, count(*)::int AS n, min(created_on) AS oldest FROM pgboss.job
-      WHERE state IN ('created', 'retry', 'active') GROUP BY 1, 2 ORDER BY 1, 2`,
-    sql`
-      SELECT name, count(*)::int AS failed, max(completed_on) AS last, left((array_agg(output::text ORDER BY completed_on DESC))[1], 300) AS last_output
-      FROM pgboss.job WHERE state = 'failed' AND completed_on > now() - interval '24 hours' GROUP BY 1 ORDER BY 2 DESC`,
+    queueReady
+      ? sql<{ name: string; state: string; n: number; oldest: Date }[]>`
+          SELECT name, state, count(*)::int AS n, min(created_on) AS oldest FROM pgboss.job
+          WHERE state IN ('created', 'retry', 'active') GROUP BY 1, 2 ORDER BY 1, 2`
+      : Promise.resolve([]),
+    queueReady
+      ? sql`
+          SELECT name, count(*)::int AS failed, max(completed_on) AS last, left((array_agg(output::text ORDER BY completed_on DESC))[1], 300) AS last_output
+          FROM pgboss.job WHERE state = 'failed' AND completed_on > now() - interval '24 hours' GROUP BY 1 ORDER BY 2 DESC`
+      : Promise.resolve([]),
     sql`
       SELECT id, name, kind, health, fail_count, last_ok_at, last_fetch_at, next_fetch_at, interval_minutes, left(last_error, 200) AS last_error
       FROM sources

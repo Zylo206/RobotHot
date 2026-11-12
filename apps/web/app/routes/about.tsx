@@ -160,11 +160,7 @@ function Maker({ maker, contact }: { maker: NonNullable<typeof ABOUT.maker>; con
             <Link to="/changelog" className="text-accent hover:underline">
               更新日志
             </Link>
-            里；有想法、遇到问题，去
-            <Link to="/feedback" className="text-accent hover:underline">
-              反馈页
-            </Link>
-            告诉我。
+            里。
           </p>
         </div>
       </div>
@@ -273,10 +269,6 @@ export default function AboutPage() {
 
       <p className="mt-16 well rounded-card px-5 py-4 text-[13px] leading-[1.85] text-ink-3">
         {ABOUT.copyright}
-        <Link to="/feedback" className="text-accent hover:underline">
-          反馈页
-        </Link>
-        联系我们。
       </p>
 
       <footer className="mt-8 flex flex-wrap items-center justify-between gap-3 border-t border-line pt-5 text-[12.5px] text-ink-4">

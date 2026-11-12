@@ -4,7 +4,7 @@ import type { ReactNode } from "react";
 import { Link } from "react-router";
 import { pageMeta } from "../lib/seo";
 import { ThemeSwitch } from "../components/shell/ThemeSwitch";
-import { IconBookmark, IconChart, IconChevronRight, IconFlame, IconGrid, IconHeart, IconHistory, IconMessage, IconMoon, IconPlug } from "../components/icons";
+import { IconBookmark, IconChart, IconChevronRight, IconFlame, IconGrid, IconHeart, IconHistory, IconMoon, IconPlug } from "../components/icons";
 
 /** Shared caches may keep this page for five minutes. */
 export function headers() {
@@ -39,7 +39,6 @@ const GROUPS: Array<{ title: string; rows: Row[] }> = [
     rows: [
       { to: "/about", label: `关于 ${SITE.name}`, icon: <IconHeart size={18} /> },
       { to: "/changelog", label: "更新日志", icon: <IconHistory size={18} /> },
-      { to: "/feedback", label: "意见反馈", icon: <IconMessage size={18} /> },
     ],
   },
 ];

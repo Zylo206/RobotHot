@@ -2,7 +2,7 @@
 // union_ids / emails; opaque sessions stored hashed, and an audit trail for every manual change.
 // Development may impersonate an admin with DEV_AUTH_ROLE=admin; production refuses to start with it.
 import { createHmac, randomBytes, timingSafeEqual } from "node:crypto";
-import { config, credential } from "../config.ts";
+import { ADMIN_PASSWORD_MIN_LENGTH, config, credential } from "../config.ts";
 import { sql } from "../db.ts";
 import { sha256 } from "../lib/ids.ts";
 
@@ -143,7 +143,7 @@ const PASSWORD_ADMIN = "admin@local";
 /** Password sign-in: a constant-time comparison of digests, so the length leaks nothing either. */
 export async function passwordLogin(password: string, returnTo: string, userAgent: string | undefined) {
   const expected = config.adminPassword;
-  if (!expected || expected.length < 12) throw new LoginRejected("还没有设置管理员密码（环境变量 ADMIN_PASSWORD，至少 12 位）");
+  if (!expected || expected.length < ADMIN_PASSWORD_MIN_LENGTH) throw new LoginRejected(`还没有设置管理员密码（环境变量 ADMIN_PASSWORD，至少 ${ADMIN_PASSWORD_MIN_LENGTH} 位）`);
   const given = createHmac("sha256", "admin-password").update(password).digest();
   const wanted = createHmac("sha256", "admin-password").update(expected).digest();
   if (!timingSafeEqual(given, wanted)) throw new LoginRejected("密码不对");

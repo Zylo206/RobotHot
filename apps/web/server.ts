@@ -5,6 +5,7 @@ import { createReadStream } from "node:fs";
 import { stat } from "node:fs/promises";
 import { createServer, request as httpRequest } from "node:http";
 import path from "node:path";
+import { pathToFileURL } from "node:url";
 import { createRequestListener } from "@react-router/node";
 import { isApiOwned, resolveRedirect } from "@aihot/contracts/http-policy";
 
@@ -35,7 +36,9 @@ const TYPES: Record<string, string> = {
   ".map": "application/json",
 };
 
-const build = await import(path.resolve(import.meta.dirname, "build/server/index.js"));
+// A file:// URL, not a bare path: on Windows an absolute path with backslashes has no scheme the ESM
+// loader accepts (ERR_UNSUPPORTED_ESM_URL_SCHEME), so import() would refuse the built server.
+const build = await import(pathToFileURL(path.resolve(import.meta.dirname, "build/server/index.js")).href);
 const ssr = createRequestListener({ build, mode: "production" });
 
 class BadRequest extends Error {}

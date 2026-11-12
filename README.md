@@ -104,7 +104,7 @@
   <img src="docs/assets/board-light.png" alt="模型榜" width="100%">
 </picture>
 
-<p align="center"><sub>截图来自用示范信源跑起来的本地站，站名是默认的 MyHOT。</sub></p>
+<p align="center"><sub>截图来自用示范信源跑起来的本地站，站名是默认的 RobotHot。</sub></p>
 
 ## 跑起来
 

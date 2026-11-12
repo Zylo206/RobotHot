@@ -12,7 +12,7 @@ import { banSource, eraseFeedback, feedbackScreenshot, listFeedback, unbanSource
 import { listMonitorEvents, listMonitorPosts, relinkPost, resolveMonitorPost, reviewReceipt, setWithdrawn, updateMonitorEvent } from "@aihot/backend/admin/monitor";
 import { releaseReceipt, requeueFailedArticles, resolveDelivery, runsOverview } from "@aihot/backend/admin/runs";
 import { listBudgets, listTargets, replaceContactQr, setTargetEnabled, updateBudget } from "@aihot/backend/admin/settings";
-import { createSource, fetchNow, listSources, previewSource, sourceDetail, updateSource } from "@aihot/backend/admin/sources";
+import { createSource, fetchNow, listSources, previewSource, runCollectNow, sourceDetail, updateSource } from "@aihot/backend/admin/sources";
 import { sql } from "@aihot/backend/db";
 import { loadContact } from "@aihot/backend/site/contact";
 import { sendProblem } from "../http/respond.ts";
@@ -50,6 +50,8 @@ export function registerAdmin(app: FastifyInstance) {
     return s ? previewSource(s as never) : notFound(req, reply);
   }));
   app.post("/api/admin/sources/:id/fetch", adminHandler(async (req, reply, admin) => orNotFound(req, reply, await fetchNow(param(req, "id"), actorOf(admin)))));
+  // One click in the source list: queue every enabled list source for the worker.
+  app.post("/api/admin/collect/run", adminHandler(async (_req, _reply, admin) => runCollectNow(actorOf(admin))));
 
   // Content and events (F19)
   app.get("/api/admin/content", adminHandler(async (req) => ({ rows: await searchContent(q(req).q ?? "") })));

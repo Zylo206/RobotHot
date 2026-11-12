@@ -1,11 +1,10 @@
 import { SITE, withSubject } from "@aihot/industry/site";
 import { Fragment, useEffect, useState } from "react";
-import { Link, useLoaderData } from "react-router";
+import { useLoaderData } from "react-router";
 import { apiGet } from "../lib/api.server";
 import { pageMeta } from "../lib/seo";
 import { setChangelogSeen } from "../lib/local-state";
 import { AsideCard, ReadingLayout } from "../components/ui/Page";
-import { IconChevronRight } from "../components/icons";
 import { Inline, dateHeading } from "../features/changelog/text";
 
 /** Shared caches may keep this page for five minutes. */
@@ -111,12 +110,6 @@ export default function ChangelogPage() {
             );
           })}
         </nav>
-      </AsideCard>
-      <AsideCard title="有想法或遇到问题">
-        <p className="text-[13px] leading-[1.75] text-ink-3">想要的功能、用着不顺的地方，都可以在反馈页告诉我们。</p>
-        <Link to="/feedback" prefetch="intent" className="mt-3 inline-flex items-center gap-1 text-[13px] font-medium text-accent hover:underline">
-          去反馈 <IconChevronRight size={14} />
-        </Link>
       </AsideCard>
     </>
   );

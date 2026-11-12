@@ -7,7 +7,6 @@ export const KEYS = {
   read: "aihot-read-items",
   theme: "aihot-theme",
   changelogSeen: "aihot-changelog-seen-version",
-  feedbackDraft: "aihot-feedback-draft-v1",
 } as const;
 
 export const STARRED_LIMIT = 500;

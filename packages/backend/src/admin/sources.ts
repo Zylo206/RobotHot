@@ -193,3 +193,34 @@ export async function fetchNow(id: string, actor: string) {
   await audit(actor, "source.fetch", `source:${id}`, null, null, { jobId });
   return { jobId };
 }
+
+/** Kinds the worker fetches one source at a time; X accounts go through their own shards. */
+const MANUAL_FETCH_KINDS = ["rss", "web_list", "json_list"] as const;
+/** A worker that has not beaten for three minutes is treated as down (it beats every minute). */
+const WORKER_STALE_MS = 180_000;
+
+/**
+ * The admin's "fetch a round now": queue every enabled list source once, ignoring its next_fetch_at.
+ * Jobs are only queued — the worker process does the fetching, so the answer also says whether one
+ * is alive, which is what tells the operator why nothing happened.
+ */
+export async function runCollectNow(actor: string) {
+  if (process.env.COLLECT_ENABLED === "false") {
+    throw new Conflict("采集已关闭（COLLECT_ENABLED=false），请打开后再试");
+  }
+  const sources = await sql<{ id: string }[]>`
+    SELECT id FROM sources
+    WHERE enabled AND kind IN ${sql([...MANUAL_FETCH_KINDS])}
+    ORDER BY next_fetch_at NULLS FIRST
+    LIMIT 100`;
+  let enqueued = 0;
+  for (const s of sources) {
+    const jobId = await enqueue(QUEUES.fetchSource, { sourceId: s.id, force: true }, { singletonKey: `manual:${s.id}` });
+    if (jobId) enqueued += 1;
+  }
+  const [hb] = await sql<{ value: { at?: string } }[]>`SELECT value FROM settings WHERE key = 'heartbeat.worker'`;
+  const at = hb?.value?.at ? Date.parse(hb.value.at) : NaN;
+  const workerAlive = Number.isFinite(at) && Date.now() - at < WORKER_STALE_MS;
+  await audit(actor, "collect.run", "sources", null, null, { enqueued, total: sources.length, workerAlive });
+  return { enqueued, total: sources.length, workerAlive };
+}

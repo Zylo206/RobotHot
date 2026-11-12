@@ -61,7 +61,6 @@ function robotsTxt(): string {
     "Disallow: /api/",
     "Disallow: /admin/",
     "Disallow: /starred",
-    "Disallow: /feedback",
     "",
     `Sitemap: ${config.siteUrl}/sitemap.xml`,
     "",

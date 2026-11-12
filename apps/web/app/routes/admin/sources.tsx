@@ -2,9 +2,11 @@ import { SITE } from "@aihot/industry/site";
 import { Form, Link, useNavigate, useSearchParams } from "react-router";
 import type { Route } from "./+types/sources";
 import { adminGet } from "../../lib/admin.server";
+import { useAdminAction } from "../../features/admin/action";
 import { num } from "../../features/admin/format";
 import { HEALTH_LABEL, KIND_LABEL, MODE_LABEL } from "../../features/admin/labels";
-import { AdminPage, Badge, ButtonLink, Card, DataTable, Dot, FilterChips, healthTone, Input, Pager, Select, Stat, Time } from "../../features/admin/ui";
+import { toast } from "../../features/admin/toast";
+import { AdminPage, Badge, Button, ButtonLink, Card, DataTable, Dot, FilterChips, healthTone, Input, Pager, Select, Stat, Time } from "../../features/admin/ui";
 
 interface SourceRow {
   id: string;
@@ -42,11 +44,30 @@ export default function Sources({ loaderData }: Route.ComponentProps) {
   const { rows, totals, page } = loaderData;
   const [sp] = useSearchParams();
   const navigate = useNavigate();
+  const { run, pending } = useAdminAction();
   return (
     <AdminPage
       title="信源"
       subtitle="列表按健康度排序：失败的在最前。点进详情可以预览抓取、手动采集、调整频率与参与方式。"
-      actions={<ButtonLink to="/admin/sources/new" tone="primary">新建信源</ButtonLink>}
+      actions={
+        <>
+          <Button
+            busy={pending === "collect"}
+            onClick={async () => {
+              const r = await run<{ enqueued: number; total: number; workerAlive: boolean }>(
+                "POST",
+                "/api/admin/collect/run",
+                {},
+                { label: "collect", success: "已把启用的信源加入采集队列" },
+              );
+              if (r && !r.workerAlive) toast("队列已排好，但 worker 没有心跳：启动 worker 后才会真正抓取。", "error");
+            }}
+          >
+            立即抓取一轮
+          </Button>
+          <ButtonLink to="/admin/sources/new" tone="primary">新建信源</ButtonLink>
+        </>
+      }
     >
       <div className="mb-5 grid grid-cols-2 gap-3 md:grid-cols-4">
         <Stat label="全部" value={num(totals.total)} />

@@ -94,8 +94,9 @@ export function channelCondition(channel: ChannelKey | null | undefined) {
 
 export function categoryCondition(category: CategoryKey | null | undefined, v1 = false) {
   if (!category) return sql``;
-  // v1 and RSS publish opinion as tip.
-  if (v1 && category === "tip") return sql`AND p.category IN ('tip', 'opinion')`;
+  // v1 and RSS filter on the industry pack's own category keys; the v1 contract tells clients
+  // to tolerate future values, so no legacy key aliases live here. The v1 flag stays for
+  // call-site symmetry with the other condition builders.
   return sql`AND p.category = ${category}`;
 }
 
