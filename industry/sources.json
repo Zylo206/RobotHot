@@ -1,5 +1,5 @@
 {
-  "$comment": "示范信源：首次启动时导入（scripts/seed.ts），已存在的不会被覆盖。之后在后台“信源”里增删改。字段说明见 docs/customize.md。机器人公司官网大多没有 RSS，科沃斯、宇树、智元等一手动态可在后台用 web_list 或 external 推送补；X 账号需要 SocialData，公众号需要极致了。2026-11-12 依据《具身智能前沿资讯信息源盘点》补充：与原有 13 条去重后新增 24 条。仅 2 条实测确认 RSS（智东西 /rss、Wired /feed）设为启用；其余只有主页地址的登记为 web_list 且 enabled=false，config.url 保存主页地址，需在后台“试抓”补齐选择器后再启用，避免猜测配置造成采集失败；无可用网址的 3 条登记为 external 占位（同样停用）。",
+  "$comment": "示范信源：首次启动时导入（scripts/seed.ts），已存在的不会被覆盖。之后在后台“信源”里增删改。字段说明见 docs/customize.md。机器人公司官网大多没有 RSS，科沃斯、宇树、智元等一手动态可在后台用 web_list 或 external 推送补；X 账号需要 SocialData，公众号需要极致了。2026-11-12 依据《具身智能前沿资讯信息源盘点》补充：与原有 13 条去重后新增 24 条。仅 2 条实测确认 RSS（智东西 /rss、Wired /feed）设为启用；其余只有主页地址的登记为 web_list 且 enabled=false，config.url 保存主页地址，需在后台“试抓”补齐选择器后再启用，避免猜测配置造成采集失败；无可用网址的 3 条登记为 external 占位（同样停用）。 2026-11-12：示范信源的 site_fulltext 统一改为 true（站内展示正文与图片，保留署名与原文链接），syndicate_fulltext 保持 false（不对外再分发）；已发布条目的展示方式用 scripts/rebuild-body-mode.ts --sync-sources 重算。",
   "sources": [
     {
       "id": "rss-google-deepmind",
@@ -19,7 +19,7 @@
       "tags": [
         "官方"
       ],
-      "site_fulltext": false,
+      "site_fulltext": true,
       "syndicate_fulltext": false
     },
     {
@@ -40,7 +40,7 @@
       "tags": [
         "官方"
       ],
-      "site_fulltext": false,
+      "site_fulltext": true,
       "syndicate_fulltext": false
     },
     {
@@ -62,7 +62,7 @@
         "官方",
         "开源"
       ],
-      "site_fulltext": false,
+      "site_fulltext": true,
       "syndicate_fulltext": false
     },
     {
@@ -83,7 +83,7 @@
       "tags": [
         "研究"
       ],
-      "site_fulltext": false,
+      "site_fulltext": true,
       "syndicate_fulltext": false
     },
     {
@@ -105,7 +105,7 @@
         "研究",
         "论文"
       ],
-      "site_fulltext": false,
+      "site_fulltext": true,
       "syndicate_fulltext": false
     },
     {
@@ -126,7 +126,7 @@
       "tags": [
         "媒体"
       ],
-      "site_fulltext": false,
+      "site_fulltext": true,
       "syndicate_fulltext": false
     },
     {
@@ -147,7 +147,7 @@
       "tags": [
         "媒体"
       ],
-      "site_fulltext": false,
+      "site_fulltext": true,
       "syndicate_fulltext": false
     },
     {
@@ -168,7 +168,7 @@
       "tags": [
         "媒体"
       ],
-      "site_fulltext": false,
+      "site_fulltext": true,
       "syndicate_fulltext": false
     },
     {
@@ -189,7 +189,7 @@
       "tags": [
         "媒体"
       ],
-      "site_fulltext": false,
+      "site_fulltext": true,
       "syndicate_fulltext": false
     },
     {
@@ -210,7 +210,7 @@
       "tags": [
         "媒体"
       ],
-      "site_fulltext": false,
+      "site_fulltext": true,
       "syndicate_fulltext": false
     },
     {
@@ -231,7 +231,7 @@
       "tags": [
         "媒体"
       ],
-      "site_fulltext": false,
+      "site_fulltext": true,
       "syndicate_fulltext": false
     },
     {
@@ -252,7 +252,7 @@
       "tags": [
         "媒体"
       ],
-      "site_fulltext": false,
+      "site_fulltext": true,
       "syndicate_fulltext": false
     },
     {
@@ -274,7 +274,7 @@
         "个人",
         "周刊"
       ],
-      "site_fulltext": false,
+      "site_fulltext": true,
       "syndicate_fulltext": false
     },
     {
@@ -292,8 +292,12 @@
       "owner_entity_id": null,
       "participation_mode": "editorial",
       "interval_minutes": 60,
-      "tags": ["媒体", "国内", "产业"],
-      "site_fulltext": false,
+      "tags": [
+        "媒体",
+        "国内",
+        "产业"
+      ],
+      "site_fulltext": true,
       "syndicate_fulltext": false
     },
     {
@@ -311,8 +315,11 @@
       "owner_entity_id": null,
       "participation_mode": "editorial",
       "interval_minutes": 120,
-      "tags": ["媒体", "海外"],
-      "site_fulltext": false,
+      "tags": [
+        "媒体",
+        "海外"
+      ],
+      "site_fulltext": true,
       "syndicate_fulltext": false
     },
     {
@@ -327,8 +334,12 @@
       "owner_entity_id": null,
       "participation_mode": "editorial",
       "interval_minutes": 60,
-      "tags": ["媒体", "国内", "技术"],
-      "site_fulltext": false,
+      "tags": [
+        "媒体",
+        "国内",
+        "技术"
+      ],
+      "site_fulltext": true,
       "syndicate_fulltext": false,
       "enabled": false
     },
@@ -344,8 +355,12 @@
       "owner_entity_id": null,
       "participation_mode": "editorial",
       "interval_minutes": 120,
-      "tags": ["媒体", "国内", "商业"],
-      "site_fulltext": false,
+      "tags": [
+        "媒体",
+        "国内",
+        "商业"
+      ],
+      "site_fulltext": true,
       "syndicate_fulltext": false,
       "enabled": false
     },
@@ -364,8 +379,11 @@
       "owner_entity_id": null,
       "participation_mode": "editorial",
       "interval_minutes": 120,
-      "tags": ["垂类", "国内"],
-      "site_fulltext": false,
+      "tags": [
+        "垂类",
+        "国内"
+      ],
+      "site_fulltext": true,
       "syndicate_fulltext": false,
       "enabled": true
     },
@@ -381,8 +399,11 @@
       "owner_entity_id": null,
       "participation_mode": "editorial",
       "interval_minutes": 120,
-      "tags": ["垂类", "国内"],
-      "site_fulltext": false,
+      "tags": [
+        "垂类",
+        "国内"
+      ],
+      "site_fulltext": true,
       "syndicate_fulltext": false,
       "enabled": false
     },
@@ -398,8 +419,11 @@
       "owner_entity_id": null,
       "participation_mode": "editorial",
       "interval_minutes": 120,
-      "tags": ["垂类", "国内"],
-      "site_fulltext": false,
+      "tags": [
+        "垂类",
+        "国内"
+      ],
+      "site_fulltext": true,
       "syndicate_fulltext": false,
       "enabled": false
     },
@@ -415,8 +439,12 @@
       "owner_entity_id": null,
       "participation_mode": "editorial",
       "interval_minutes": 180,
-      "tags": ["垂类", "国内", "产业"],
-      "site_fulltext": false,
+      "tags": [
+        "垂类",
+        "国内",
+        "产业"
+      ],
+      "site_fulltext": true,
       "syndicate_fulltext": false,
       "enabled": false
     },
@@ -432,8 +460,12 @@
       "owner_entity_id": null,
       "participation_mode": "editorial",
       "interval_minutes": 120,
-      "tags": ["垂类", "国内", "资本"],
-      "site_fulltext": false,
+      "tags": [
+        "垂类",
+        "国内",
+        "资本"
+      ],
+      "site_fulltext": true,
       "syndicate_fulltext": false,
       "enabled": false
     },
@@ -449,8 +481,12 @@
       "owner_entity_id": null,
       "participation_mode": "editorial",
       "interval_minutes": 60,
-      "tags": ["垂类", "国内", "快讯"],
-      "site_fulltext": false,
+      "tags": [
+        "垂类",
+        "国内",
+        "快讯"
+      ],
+      "site_fulltext": true,
       "syndicate_fulltext": false,
       "enabled": false
     },
@@ -469,8 +505,11 @@
       "owner_entity_id": null,
       "participation_mode": "editorial",
       "interval_minutes": 120,
-      "tags": ["垂类", "海外"],
-      "site_fulltext": false,
+      "tags": [
+        "垂类",
+        "海外"
+      ],
+      "site_fulltext": true,
       "syndicate_fulltext": false,
       "enabled": true
     },
@@ -486,8 +525,12 @@
       "owner_entity_id": null,
       "participation_mode": "editorial",
       "interval_minutes": 180,
-      "tags": ["官方", "国内", "研究"],
-      "site_fulltext": false,
+      "tags": [
+        "官方",
+        "国内",
+        "研究"
+      ],
+      "site_fulltext": true,
       "syndicate_fulltext": false,
       "enabled": false
     },
@@ -503,8 +546,12 @@
       "owner_entity_id": null,
       "participation_mode": "editorial",
       "interval_minutes": 180,
-      "tags": ["官方", "国内", "研究"],
-      "site_fulltext": false,
+      "tags": [
+        "官方",
+        "国内",
+        "研究"
+      ],
+      "site_fulltext": true,
       "syndicate_fulltext": false,
       "enabled": false
     },
@@ -520,8 +567,11 @@
       "owner_entity_id": null,
       "participation_mode": "editorial",
       "interval_minutes": 120,
-      "tags": ["媒体", "海外"],
-      "site_fulltext": false,
+      "tags": [
+        "媒体",
+        "海外"
+      ],
+      "site_fulltext": true,
       "syndicate_fulltext": false,
       "enabled": false
     },
@@ -540,8 +590,11 @@
       "owner_entity_id": null,
       "participation_mode": "editorial",
       "interval_minutes": 120,
-      "tags": ["媒体", "海外"],
-      "site_fulltext": false,
+      "tags": [
+        "媒体",
+        "海外"
+      ],
+      "site_fulltext": true,
       "syndicate_fulltext": false,
       "enabled": true
     },
@@ -557,8 +610,12 @@
       "owner_entity_id": null,
       "participation_mode": "editorial",
       "interval_minutes": 180,
-      "tags": ["官方", "海外", "研究"],
-      "site_fulltext": false,
+      "tags": [
+        "官方",
+        "海外",
+        "研究"
+      ],
+      "site_fulltext": true,
       "syndicate_fulltext": false,
       "enabled": false
     },
@@ -577,8 +634,12 @@
       "owner_entity_id": null,
       "participation_mode": "editorial",
       "interval_minutes": 180,
-      "tags": ["官方", "海外", "研究"],
-      "site_fulltext": false,
+      "tags": [
+        "官方",
+        "海外",
+        "研究"
+      ],
+      "site_fulltext": true,
       "syndicate_fulltext": false,
       "enabled": true
     },
@@ -595,8 +656,12 @@
       "owner_entity_id": null,
       "participation_mode": "editorial",
       "interval_minutes": 180,
-      "tags": ["官方", "海外", "研究"],
-      "site_fulltext": false,
+      "tags": [
+        "官方",
+        "海外",
+        "研究"
+      ],
+      "site_fulltext": true,
       "syndicate_fulltext": false,
       "enabled": true
     },
@@ -612,8 +677,12 @@
       "owner_entity_id": null,
       "participation_mode": "editorial",
       "interval_minutes": 180,
-      "tags": ["官方", "海外", "公司"],
-      "site_fulltext": false,
+      "tags": [
+        "官方",
+        "海外",
+        "公司"
+      ],
+      "site_fulltext": true,
       "syndicate_fulltext": false,
       "enabled": false
     },
@@ -629,8 +698,11 @@
       "owner_entity_id": null,
       "participation_mode": "editorial",
       "interval_minutes": 180,
-      "tags": ["论文", "开源"],
-      "site_fulltext": false,
+      "tags": [
+        "论文",
+        "开源"
+      ],
+      "site_fulltext": true,
       "syndicate_fulltext": false,
       "enabled": false
     },
@@ -646,8 +718,10 @@
       "owner_entity_id": null,
       "participation_mode": "editorial",
       "interval_minutes": 180,
-      "tags": ["开源"],
-      "site_fulltext": false,
+      "tags": [
+        "开源"
+      ],
+      "site_fulltext": true,
       "syndicate_fulltext": false,
       "enabled": false
     },
@@ -661,8 +735,12 @@
       "owner_entity_id": null,
       "participation_mode": "editorial",
       "interval_minutes": 120,
-      "tags": ["媒体", "国内", "公众号"],
-      "site_fulltext": false,
+      "tags": [
+        "媒体",
+        "国内",
+        "公众号"
+      ],
+      "site_fulltext": true,
       "syndicate_fulltext": false,
       "enabled": false
     },
@@ -676,8 +754,12 @@
       "owner_entity_id": null,
       "participation_mode": "editorial",
       "interval_minutes": 180,
-      "tags": ["官方", "国内", "研究"],
-      "site_fulltext": false,
+      "tags": [
+        "官方",
+        "国内",
+        "研究"
+      ],
+      "site_fulltext": true,
       "syndicate_fulltext": false,
       "enabled": false
     },
@@ -691,8 +773,12 @@
       "owner_entity_id": null,
       "participation_mode": "editorial",
       "interval_minutes": 180,
-      "tags": ["官方", "海外", "公司"],
-      "site_fulltext": false,
+      "tags": [
+        "官方",
+        "海外",
+        "公司"
+      ],
+      "site_fulltext": true,
       "syndicate_fulltext": false,
       "enabled": false
     }

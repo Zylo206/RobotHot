@@ -48,6 +48,8 @@ export interface ItemRow {
   zh_text: string | null;
   /** Chinese translation of the post an X post quotes. */
   quoted_zh: string | null;
+  /** First body image, used as the feed card thumbnail. */
+  cover_url: string | null;
 }
 
 /** Columns every item listing selects. Internal judgement details never leave this layer. */
@@ -58,6 +60,10 @@ export const ITEM_COLUMNS = sql`
   s.id AS source_id, s.name AS source_name, s.kind AS source_kind, s.participation_mode AS source_mode, s.icon_url AS source_icon,
   a.x_post, a.author, a.language,
   st.public_id::text AS story_public_id, st.title AS story_title,
+  COALESCE(
+    (SELECT m->>'url' FROM jsonb_array_elements(a.media) m WHERE COALESCE(m->>'kind', 'image') = 'image' LIMIT 1),
+    (SELECT substring(a.body_html from '<img[^>]+src="([^"]+)"') )
+  ) AS cover_url,
   CASE WHEN p.channel = 'x' THEN tr.body_text END AS zh_text, qt.text_zh AS quoted_zh`;
 
 /** Public API listings never render article bodies, X media or story metadata. */
@@ -188,6 +194,7 @@ export function toFeedItemSummary(row: ItemRow): FeedItemSummary {
     id: item.id, title: item.title, summary: item.summary, reason: item.reason,
     source: { name: item.source.name }, publishedAt: item.publishedAt, timelineAt: item.timelineAt,
     category: item.category, tags: item.tags, score: item.score, selected: item.selected, channel: item.channel,
+    image: item.channel === "x" ? null : proxiedImage(row.cover_url?.replace(/&amp;/g, "&"), "card"),
     x: item.x ? {
       authorName: item.x.authorName, handle: item.x.handle, avatarUrl: item.x.avatarUrl,
       ...(item.x.avatarSrcSet ? { avatarSrcSet: item.x.avatarSrcSet } : {}), media: item.x.media,

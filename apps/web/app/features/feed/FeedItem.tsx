@@ -58,12 +58,25 @@ export const FeedItem = memo(function FeedItem({ item, group, filters, read = fa
         </p>
       ) : (
         <>
-          <h3 className={`mt-2 line-clamp-2 text-[17px] font-bold leading-[1.55] lg:line-clamp-none lg:font-[650] ${read ? "text-ink-4" : "text-ink"}`}>
-            <IntentLink to={`/items/${item.id}`} onClick={open} className="after:absolute after:inset-0 after:content-['']">
-              {item.title}
-            </IntentLink>
-          </h3>
-          {item.summary && <p className="mt-1.5 line-clamp-2 text-[14.5px] leading-[1.75] text-ink-3 lg:mt-2 lg:line-clamp-3 lg:text-[15px]">{item.summary}</p>}
+          <div className="mt-2 flex gap-3">
+            <div className="min-w-0 flex-1">
+              <h3 className={`line-clamp-2 text-[17px] font-bold leading-[1.55] lg:line-clamp-none lg:font-[650] ${read ? "text-ink-4" : "text-ink"}`}>
+                <IntentLink to={`/items/${item.id}`} onClick={open} className="after:absolute after:inset-0 after:content-['']">
+                  {item.title}
+                </IntentLink>
+              </h3>
+              {item.summary && <p className="mt-1.5 line-clamp-2 text-[14.5px] leading-[1.75] text-ink-3 lg:mt-2 lg:line-clamp-3 lg:text-[15px]">{item.summary}</p>}
+            </div>
+            {item.image && (
+              <img
+                src={item.image}
+                alt=""
+                loading="lazy"
+                decoding="async"
+                className="pointer-events-none size-16 shrink-0 rounded-[7px] border border-line-soft object-cover lg:h-[64px] lg:w-[88px]"
+              />
+            )}
+          </div>
         </>
       )}
 

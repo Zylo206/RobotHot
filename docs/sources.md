@@ -60,7 +60,7 @@
 - **分级** `tier`：`T1` 官方一手（官网、官方博客、机构）、`T1_5` 官方账号与准官方创作者、`T2` 媒体与个人、`EXCLUDE_MP` 不参与精选。入选门槛按分级不同（`industry/selection.ts`）。
 - **参与方式** `participation_mode`：`editorial` 进精选和全部动态；`hot_signal` 不单独展示，只作为“大家在讨论什么”的热度证据；`isolated` 不进任何公开页面。
 - **一手** `first_party`：来源是当事方自己。事件页会优先展示一手报道。
-- **全文**：`site_fulltext` 决定站内能不能显示全文，`syndicate_fulltext` 决定全文 RSS 能不能带正文。两者**默认都关**，只显示摘要和原文链接；来源明确允许时再打开。公众号、付费墙内容不会因为技术上抓得到就获得全文展示。
+- **全文**：`site_fulltext` 决定站内能不能显示全文，`syndicate_fulltext` 决定全文 RSS 能不能带正文。框架**默认都关**，只显示摘要和原文链接。RobotHot 把示范信源的 `site_fulltext` 全部打开（站内阅读，保留署名与原文链接），`syndicate_fulltext` 仍保持关闭；公众号、付费墙内容不会因为技术上抓得到就获得全文展示。改完之后跑 `scripts/rebuild-body-mode.ts --sync-sources` 让已发布的条目重算展示方式。
 
 ## 抓取频率
 
