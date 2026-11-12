@@ -69,8 +69,26 @@ function original(url: string): Promise<GuardedResponse> {
   return job;
 }
 
+/**
+ * Many image buckets answer a foreign-looking request with 403 "denied by referer rule" (量子位的
+ * i.qbitai.com, several OSS/COS hosts). Sending the picture's own site as the referer is what a browser
+ * on that article does, and it is the condition those rules actually ask for.
+ */
+function refererFor(url: string): string {
+  try {
+    const { protocol, host } = new URL(url);
+    return `${protocol}//${host}/`;
+  } catch {
+    return "";
+  }
+}
+
 async function fetchOriginal(url: string): Promise<GuardedResponse> {
-  const res = await guardedFetch(url, { timeoutMs: 20_000, maxBytes: 15 * 1024 * 1024, headers: { accept: "image/avif,image/webp,image/*,*/*;q=0.8" } });
+  const res = await guardedFetch(url, {
+    timeoutMs: 20_000,
+    maxBytes: 15 * 1024 * 1024,
+    headers: { accept: "image/avif,image/webp,image/*,*/*;q=0.8", referer: refererFor(url) },
+  });
   if (res.status !== 200) throw new Error(`upstream ${res.status}`);
   return res;
 }

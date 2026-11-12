@@ -13,6 +13,20 @@ const ALLOWED_TAGS = [
 const PROMO_CLASS = /(?:^|[-_])promo(?:$|[-_])/i;
 
 /**
+ * Some templates publish markup as text: 量子位's WeChat-style pages open with a literal
+ * "&lt; img src=… width=… &gt;" string. By the time it is sanitised it is genuine text, so the reader
+ * ends up looking at a tag instead of a picture. Escape sequences never contain a raw "&", which keeps
+ * the match from running across two different entities.
+ */
+const ESCAPED_TAG = /&lt;\s*\/?\s*(?:img|video|source|picture|figure|svg|div|span|p|br|a|strong|em|table|tr|td|th|ul|ol|li)\b[^&]{0,600}?&gt;/gi;
+
+export function stripEscapedMarkup(html: string): string {
+  const stripped = html.replace(ESCAPED_TAG, "");
+  // The junk usually sat alone in its own paragraph; drop what is left of that paragraph.
+  return stripped === html ? html : stripped.replace(/<p>\s*<\/p>/g, "");
+}
+
+/**
  * Promotions a site places inside its posts and rotates between loads (Microsoft Research puts a
  * different podcast or product box into each post of its feed). They are no part of the post, and
  * keeping them made every fetch look like a new version of the article.
@@ -82,7 +96,7 @@ export function sanitizeBody(html: string, baseUrl?: string): string {
       (frame.tag === "img" && !frame.attribs.src) ||
       (frame.tag === "a" && !frame.text.trim() && !frame.mediaChildren?.length),
   });
-  return normalizeBlocks(cleaned);
+  return normalizeBlocks(stripEscapedMarkup(cleaned));
 }
 
 const BLOCK_TAGS = new Set(["p", "h2", "h3", "h4", "h5", "ul", "ol", "li", "blockquote", "pre", "table", "figure", "hr", "dl", "picture", "video"]);

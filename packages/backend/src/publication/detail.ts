@@ -3,7 +3,7 @@ import type { ItemDetail, SiteItemDetail, OutlineEntry, StoryRef } from "@aihot/
 import TurndownService from "turndown";
 import { sql } from "../db.ts";
 import { proxyBodyImages } from "../media/imgproxy.ts";
-import { textToHtml } from "../content/sanitize.ts";
+import { stripEscapedMarkup, textToHtml } from "../content/sanitize.ts";
 import { ITEM_COLUMNS, ITEM_FROM, selectedCondition, toItemSummary, xView, type ItemRow } from "./items.ts";
 import { itemUrl } from "./links.ts";
 import { hasItemPage } from "./rules.ts";
@@ -90,7 +90,7 @@ export async function loadItemDetail(id: string, now = new Date()): Promise<Deta
     };
   } else if (row.body_mode === "full" && row.body_html) {
     const isZh = row.language === "zh" || (/[一-鿿]/.test(row.body_text?.slice(0, 400) ?? "") && row.language !== "en");
-    const original = proxyBodyImages(row.body_html);
+    const original = proxyBodyImages(stripEscapedMarkup(row.body_html));
     const zh = isZh ? original : row.tr_html ? proxyBodyImages(row.tr_html) : null;
     const primary = withOutline(zh ?? original);
     outline = primary.outline;
@@ -174,7 +174,7 @@ export async function exportMarkdown(id: string): Promise<{ filename: string; bo
   } else if (row.body_mode === "full" && row.body_html) {
     const isZh = row.language === "zh";
     if (!isZh && row.tr_html && row.tr_complete) lines.push("## 正文 · 中文译文", "", turndown.turndown(row.tr_html), "");
-    lines.push(isZh ? "## 正文" : "## 正文 · 原文", "", turndown.turndown(row.body_html), "");
+    lines.push(isZh ? "## 正文" : "## 正文 · 原文", "", turndown.turndown(stripEscapedMarkup(row.body_html)), "");
   }
   return { filename: `aihot-${row.id}.md`, body: lines.join("\n").replace(/\n{3,}/g, "\n\n") };
 }
