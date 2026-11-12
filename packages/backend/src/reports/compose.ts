@@ -46,7 +46,18 @@ function roleOf(kind: string, firstParty: boolean): string {
   return "媒体";
 }
 
-export async function candidates(start: Date, end: Date): Promise<Candidate[]> {
+export interface CandidateOptions {
+  /**
+   * Rebuilding editions for days that were already over when the material arrived: a new site's first
+   * import is entirely backfill (source-dated, imported later), so the live rules would leave every past
+   * day empty. Historical mode counts eligible items on the day they were published and ignores when the
+   * import made them visible. The scheduled 08:00 run never uses it.
+   */
+  historical?: boolean;
+}
+
+export async function candidates(start: Date, end: Date, opts: CandidateOptions = {}): Promise<Candidate[]> {
+  const historical = opts.historical === true;
   const rows = await sql<{
     id: string; title: string; summary: string | null; url: string; category: string | null; score: number | null; first_party: boolean;
     source_id: string; source_name: string; source_kind: string; fact_public_id: string | null; story_public_id: string | null; at: Date; backfill: boolean;
@@ -55,8 +66,11 @@ export async function candidates(start: Date, end: Date): Promise<Candidate[]> {
            s.kind AS source_kind, f.public_id AS fact_public_id, st.public_id::text AS story_public_id, p.timeline_at AS at, p.backfill
     FROM publications p JOIN sources s ON s.id = p.source_id
     LEFT JOIN facts f ON f.id = p.fact_id LEFT JOIN stories st ON st.id = f.story_id
-    WHERE p.visibility = 'public' AND p.selected AND NOT p.backfill AND p.timeline_at >= ${start} AND p.timeline_at < ${end}
-      AND p.visible_after <= ${end}`;
+    WHERE p.visibility = 'public' AND p.eligible
+      AND (p.selected OR ${historical}::boolean)
+      AND (NOT p.backfill OR (${historical}::boolean AND p.published_at IS NOT NULL))
+      AND (p.visible_after <= ${end} OR ${historical}::boolean)
+      AND p.timeline_at >= ${start} AND p.timeline_at < ${end}`;
   // One entry per fact: first-party first, then score.
   const byFact = new Map<string, Candidate>();
   for (const r of rows) {
@@ -108,7 +122,9 @@ async function writeLead(kind: string, key: string, entries: ReportEntry[], mode
   return { lead: { title: res.data.title, leadParagraph: res.data.leadParagraph }, highlights, receiptId: res.receiptId };
 }
 
-async function saveReport(kind: "daily" | "weekly" | "monthly", key: string, start: Date, end: Date, content: Record<string, unknown>, reason: string, model: string) {
+type ReportOrigin = "model" | "imported" | "manual";
+
+async function saveReport(kind: "daily" | "weekly" | "monthly", key: string, start: Date, end: Date, content: Record<string, unknown>, reason: string, model: string, origin: ReportOrigin = "model") {
   await sql.begin(async (tx) => {
     const [existing] = await tx<{ id: number; revision: number; content: unknown; generated_at: Date }[]>`
       SELECT id, revision, content, generated_at FROM reports WHERE kind = ${kind} AND key = ${key} FOR UPDATE`;
@@ -116,20 +132,25 @@ async function saveReport(kind: "daily" | "weekly" | "monthly", key: string, sta
       await tx`INSERT INTO report_revisions (report_id, revision, content, generated_at, reason)
                VALUES (${existing.id}, ${existing.revision}, ${tx.json(existing.content as never)}, ${existing.generated_at}, ${reason}) ON CONFLICT DO NOTHING`;
       await tx`UPDATE reports SET content = ${tx.json(content as never)}, window_start = ${start}, window_end = ${end}, generated_at = now(),
-                 model = ${model}, revision = revision + 1, origin = 'model', updated_at = now() WHERE id = ${existing.id}`;
+                 model = ${model}, revision = revision + 1, origin = ${origin}, updated_at = now() WHERE id = ${existing.id}`;
     } else {
       await tx`INSERT INTO reports (kind, key, window_start, window_end, content, generated_at, model, origin)
-               VALUES (${kind}, ${key}, ${start}, ${end}, ${tx.json(content as never)}, now(), ${model}, 'model')`;
+               VALUES (${kind}, ${key}, ${start}, ${end}, ${tx.json(content as never)}, now(), ${model}, ${origin})`;
     }
   });
 }
 
 /** Daily report for Beijing date D covers [D-1 08:00, D 08:00) Beijing time. */
-export async function composeDaily(date: string, reason = "scheduled"): Promise<{ key: string; entries: number }> {
+export interface DailyOptions extends CandidateOptions {
+  /** `imported` marks an edition rebuilt from source-dated backfill, so it stays distinguishable from a live one. */
+  origin?: ReportOrigin;
+}
+
+export async function composeDaily(date: string, reason = "scheduled", opts: DailyOptions = {}): Promise<{ key: string; entries: number }> {
   const end = new Date(beijingMidnight(date).getTime() + 8 * 3600 * 1000);
   const start = new Date(end.getTime() - 86400000);
   const covered = await recentlyCovered("daily", date);
-  const all = await candidates(start, end);
+  const all = await candidates(start, end, opts);
   const fresh = all.filter((c) => !covered.has(c.factKey) && !covered.has(`a:${c.itemId}`));
   const perSection = new Map<string, Candidate[]>();
   const flashes: Array<{ itemId: string; title: string; sourceName: string; sourceUrl: string; publishedAt: string }> = [];
@@ -163,7 +184,7 @@ export async function composeDaily(date: string, reason = "scheduled"): Promise<
     windowEnd: end.toISOString(),
     generator: { version: REPORT_VERSION, model, repeatsSuppressed: all.length - fresh.length },
   };
-  await saveReport("daily", date, start, end, content, reason, model);
+  await saveReport("daily", date, start, end, content, reason, model, opts.origin ?? "model");
   if (lead) await completeReceipt(sql, lead.receiptId);
   return { key: date, entries: ordered.length };
 }
