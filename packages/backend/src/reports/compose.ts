@@ -124,6 +124,13 @@ async function writeLead(kind: string, key: string, entries: ReportEntry[], mode
 
 type ReportOrigin = "model" | "imported" | "manual";
 
+/** Whether an edition already carries items; an empty one may be replaced. */
+async function hasContent(kind: "daily" | "weekly" | "monthly", key: string): Promise<boolean> {
+  const [row] = await sql<{ n: number }[]>`
+    SELECT coalesce((content->'metrics'->>'totalEvents')::int, 0) AS n FROM reports WHERE kind = ${kind} AND key = ${key}`;
+  return (row?.n ?? 0) > 0;
+}
+
 async function saveReport(kind: "daily" | "weekly" | "monthly", key: string, start: Date, end: Date, content: Record<string, unknown>, reason: string, model: string, origin: ReportOrigin = "model") {
   await sql.begin(async (tx) => {
     const [existing] = await tx<{ id: number; revision: number; content: unknown; generated_at: Date }[]>`
@@ -146,7 +153,7 @@ export interface DailyOptions extends CandidateOptions {
   origin?: ReportOrigin;
 }
 
-export async function composeDaily(date: string, reason = "scheduled", opts: DailyOptions = {}): Promise<{ key: string; entries: number }> {
+export async function composeDaily(date: string, reason = "scheduled", opts: DailyOptions = {}): Promise<{ key: string; entries: number; skipped?: boolean }> {
   const end = new Date(beijingMidnight(date).getTime() + 8 * 3600 * 1000);
   const start = new Date(end.getTime() - 86400000);
   const covered = await recentlyCovered("daily", date);
@@ -166,6 +173,11 @@ export async function composeDaily(date: string, reason = "scheduled", opts: Dai
     items: perSection.get(label)!.map(({ category: _c, factKey: _f, ...entry }) => entry),
   }));
   const ordered = sections.flatMap((s) => s.items).sort((a, b) => (b.score ?? 0) - (a.score ?? 0));
+  // A live recompose that finds nothing must not wipe an edition that already has content — one rebuilt
+  // from source-dated backfill, or one written before a source went quiet. Rebuilding asks for it explicitly.
+  if (ordered.length === 0 && opts.historical !== true && (await hasContent("daily", date))) {
+    return { key: date, entries: 0, skipped: true };
+  }
   const model = await modelFor("report");
   const lead = ordered.length ? await writeLead("daily", date, ordered, model) : null;
   const content = {

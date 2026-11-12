@@ -4,6 +4,7 @@ import { sql } from "../db.ts";
 import { audit } from "./auth.ts";
 import { Conflict } from "./sources.ts";
 import { failureGroupSql, queueProcessing, requeueFailed } from "../jobs/content.ts";
+import { getBoss } from "../jobs/queue.ts";
 
 const STALE_HEARTBEAT_MS = 3 * 60_000;
 
@@ -14,6 +15,13 @@ const STALE_HEARTBEAT_MS = 3 * 60_000;
 async function queueSchemaReady(): Promise<boolean> {
   const [row] = await sql<{ ok: boolean }[]>`SELECT to_regclass('pgboss.job') IS NOT NULL AS ok`;
   return row?.ok === true;
+}
+
+/** The 20 s heartbeat the worker writes; the page and every manual action read the same clock. */
+async function workerAlive(): Promise<boolean> {
+  const [hb] = await sql<{ value: { at?: string } }[]>`SELECT value FROM settings WHERE key = 'heartbeat.worker'`;
+  const at = hb?.value?.at ? Date.parse(hb.value.at) : NaN;
+  return Number.isFinite(at) && Date.now() - at < STALE_HEARTBEAT_MS;
 }
 
 export async function runsOverview() {
@@ -67,6 +75,12 @@ export async function runsOverview() {
   // Articles waiting to retry after a passing provider problem (they are not failed).
   const [retrying] = await sql<{ n: number; next: Date | null }[]>`
     SELECT count(*)::int AS n, min(processing_retry_at) AS next FROM articles WHERE processing_state = 'new' AND processing_attempts > 0`;
+  // The cron table the worker registers: a job that never ran is listed here, not in job_runs.
+  const [scheduleTable] = queueReady ? await sql<{ ok: boolean }[]>`SELECT to_regclass('pgboss.schedule') IS NOT NULL AS ok` : [{ ok: false }];
+  const schedules = scheduleTable?.ok
+    ? (await sql<{ name: string; cron: string }[]>`SELECT name, cron FROM pgboss.schedule WHERE name LIKE 'cron.%' ORDER BY name`)
+      .map((s) => ({ name: s.name.slice("cron.".length), cron: s.cron }))
+    : [];
   const now = Date.now();
   return {
     checkedAt: new Date(now).toISOString(),
@@ -77,6 +91,7 @@ export async function runsOverview() {
       alive: now - h.updated_at.getTime() < STALE_HEARTBEAT_MS,
     })),
     jobs: latest,
+    schedules,
     timeline,
     queues,
     failedJobs,
@@ -174,4 +189,22 @@ export async function resolveDelivery(id: number, input: { outcome: "sent" | "dr
   }
   await audit(actor, `delivery.${input.outcome}`, `delivery:${id}`, input.note, { status: before.status }, { status });
   return { id, status };
+}
+
+/**
+ * Runs one cron entry now instead of waiting for its slot. The job goes into the same queue the
+ * schedule uses, so the worker's handler records it in job_runs exactly like a scheduled run; with no
+ * live worker it simply waits in the queue, and the caller is told that instead of a false "已运行".
+ */
+export async function runScheduledNow(name: string, actor: string) {
+  const queue = `cron.${name}`;
+  const [ready] = await sql<{ ok: boolean }[]>`SELECT to_regclass('pgboss.schedule') IS NOT NULL AS ok`;
+  if (!ready?.ok) throw new Conflict("定时表还没建立：worker 从未启动过，先启动 worker");
+  const [entry] = await sql<{ cron: string }[]>`SELECT cron FROM pgboss.schedule WHERE name = ${queue}`;
+  if (!entry) throw new Conflict("这个任务不在 worker 的定时表里（可能已被关掉）");
+  const boss = await getBoss();
+  const jobId = await boss.send(queue, { manual: true, by: actor });
+  const alive = await workerAlive();
+  await audit(actor, "run.schedule", queue, "手动运行定时任务", null, { jobId, workerAlive: alive });
+  return { name, queue, cron: entry.cron, jobId, workerAlive: alive };
 }

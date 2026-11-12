@@ -6,6 +6,7 @@ import type { Route } from "./+types/runs";
 import { adminGet } from "../../lib/admin.server";
 import { useAdminAction } from "../../features/admin/action";
 import { ago, bj, duration, num } from "../../features/admin/format";
+import { toast } from "../../features/admin/toast";
 import { AdminPage, Badge, Button, Card, DataTable, Dot, Empty, Field, Json, ReasonDialog, Select, Stat, Time } from "../../features/admin/ui";
 
 type Row = Record<string, any>;
@@ -13,6 +14,8 @@ interface Runs {
   checkedAt: string;
   processes: Array<{ role: string; pid: number; host: string; release: string; startedAt: string; at: string; alive: boolean }>;
   jobs: Row[];
+  /** Every cron the worker registered — a job that never ran has no row in `jobs`. */
+  schedules: Array<{ name: string; cron: string }>;
   timeline: Row[];
   queues: Array<{ name: string; state: string; n: number; oldest: string }>;
   failedJobs: Row[];
@@ -56,9 +59,35 @@ export default function RunsAdmin({ loaderData }: Route.ComponentProps) {
   const queued = r.queues.filter((q) => q.state !== "active").reduce((a, q) => a + q.n, 0);
   const worker = r.processes.find((p) => p.role === "worker");
   const failing = r.jobs.filter((j) => j.status === "failed");
+  // A registered job that never ran has no job_runs row; the cron table fills it in, so every task can
+  // still be started by hand.
+  const ran = new Set(r.jobs.map((j) => j.job));
+  const jobRows: Row[] = [
+    ...r.jobs,
+    ...r.schedules.filter((s) => !ran.has(s.name)).map((s) => ({ job: s.name, cron: s.cron, status: null, started_at: null, finished_at: null, failed_24h: 0, runs_24h: 0 })),
+  ];
+
+  // The worker owns execution: these only queue work. Without a heartbeat the queue waits, so say so
+  // instead of showing a green "done".
+  const runJob = async (name: string) => {
+    const res = await run<{ workerAlive: boolean }>("POST", `/api/admin/runs/jobs/${encodeURIComponent(name)}/run`, {}, { label: `run:${name}`, success: `已把 ${name} 加入执行队列` });
+    if (res && !res.workerAlive) toast("任务已排队，但 worker 没有心跳：启动 worker 后才会真正执行。", "error");
+  };
+  const collectNow = async () => {
+    const res = await run<{ enqueued: number; total: number; workerAlive: boolean }>("POST", "/api/admin/collect/run", {}, { label: "collect", success: "已把启用的信源加入采集队列" });
+    if (res && !res.workerAlive) toast("队列已排好，但 worker 没有心跳：启动 worker 后才会真正抓取。", "error");
+  };
 
   return (
-    <AdminPage title="运行" subtitle={<>任务、队列、信源延迟与需要人工核对的回执和投递。每 20 秒自动刷新 · 最近检查 {bj(r.checkedAt)}</>}>
+    <AdminPage
+      title="运行"
+      subtitle={<>任务、队列、信源延迟与需要人工核对的回执和投递。定时任务可以随时手动运行；队列由 worker 执行，心跳中断时任务只会排队。每 20 秒自动刷新 · 最近检查 {bj(r.checkedAt)}</>}
+      actions={
+        <Button tone="primary" busy={pending === "collect"} onClick={collectNow}>
+          立即抓取一轮
+        </Button>
+      }
+    >
       <div className="mb-5 grid grid-cols-2 gap-3 lg:grid-cols-5">
         <Stat
           label="worker"
@@ -72,7 +101,7 @@ export default function RunsAdmin({ loaderData }: Route.ComponentProps) {
       </div>
 
       <div className="grid gap-5 xl:grid-cols-2">
-        <Card title="队列" pad={false}>
+        <Card title="队列" right={worker?.alive ? <span>worker 在消费</span> : <span className="text-hot">worker 未运行，积压不会消化</span>} pad={false}>
           <DataTable
             dense
             rows={[...backlog.entries()]}
@@ -90,17 +119,24 @@ export default function RunsAdmin({ loaderData }: Route.ComponentProps) {
             ]}
           />
         </Card>
-        <Card title="定时任务" pad={false}>
+        <Card title="定时任务" right={<span>共 {num(jobRows.length)} 个 · 可手动运行</span>} pad={false}>
           <DataTable
             dense
-            rows={r.jobs}
+            rows={jobRows}
             rowKey={(j) => j.job}
+            empty="worker 还没有注册定时任务"
             columns={[
-              { key: "j", label: "任务", render: (j) => <span className="font-mono text-[12.5px]">{j.job}</span> },
-              { key: "s", label: "上次", render: (j) => <Badge tone={j.status === "ok" ? "ok" : j.status === "failed" ? "bad" : "muted"} title={j.error ?? undefined}>{j.status ?? "运行中"}</Badge> },
+              { key: "j", label: "任务", render: (j) => (
+                <span className="font-mono text-[12.5px]">
+                  {j.job}
+                  {!j.started_at && j.cron && <span className="ml-1.5 font-sans text-[11px] text-ink-4">{j.cron}</span>}
+                </span>
+              ) },
+              { key: "s", label: "上次", render: (j) => (j.started_at ? <Badge tone={j.status === "ok" ? "ok" : j.status === "failed" ? "bad" : "muted"} title={j.error ?? undefined}>{j.status ?? "运行中"}</Badge> : <span className="text-ink-4">从未运行</span>) },
               { key: "at", label: "时间", render: (j) => <Time at={j.started_at} /> },
               { key: "d", label: "耗时", align: "right", render: (j) => duration(j.started_at, j.finished_at) },
               { key: "f", label: "24h 失败", align: "right", render: (j) => (j.failed_24h ? <span className="text-hot">{j.failed_24h}/{j.runs_24h}</span> : `0/${j.runs_24h}`) },
+              { key: "a", label: "", align: "right", render: (j) => <Button size="sm" busy={pending === `run:${j.job}`} onClick={() => runJob(j.job)}>运行</Button> },
             ]}
           />
         </Card>
